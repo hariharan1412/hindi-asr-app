@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hindi ASR App</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif; /* Using Inter font */
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5; /* Light gray background */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px; /* More rounded corners */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Softer shadow */
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #1a73e8; /* Google blue */
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 600;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #555;
+            font-size: 1.1em;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px; /* Rounded input */
+            box-sizing: border-box;
+            font-size: 1em;
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        button {
+            background-color: #1a73e8; /* Google blue */
+            color: white;
+            padding: 14px 25px;
+            border: none;
+            border-radius: 8px; /* Rounded buttons */
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #155cb8; /* Darker blue on hover */
+            transform: translateY(-2px); /* Slight lift effect */
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+        #result-container {
+            margin-top: 35px;
+            padding: 25px;
+            background-color: #e8f0fe; /* Light blue background for results */
+            border-radius: 10px;
+            border: 1px solid #c6dafc;
+            display: none; /* Hidden by default */
+        }
+        #result-container h3 {
+            color: #1a73e8;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        #transcription-output {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #28a745; /* Green for success */
+            word-wrap: break-word;
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e6ffe6;
+            border-radius: 6px;
+            border: 1px solid #a3e6a3;
+        }
+        #json-output {
+            margin-top: 15px;
+            font-family: 'Fira Code', 'Consolas', monospace; /* Monospace font for JSON */
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto; /* Enable horizontal scrolling for long JSON */
+            white-space: pre; /* Preserve whitespace and line breaks */
+            font-size: 0.9em;
+            max-height: 200px; /* Limit height for JSON output */
+        }
+        .status-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .loading-message {
+            color: #1a73e8;
+            background-color: #e8f0fe;
+            border: 1px solid #c6dafc;
+        }
+        .error-message {
+            color: #dc3545; /* Red for errors */
+            background-color: #ffe6e6;
+            border: 1px solid #ffb3b3;
+        }
+        .download-json-button {
+            background-color: #4CAF50; /* Green for JSON download */
+            margin-top: 15px;
+            display: none; /* Hidden by default */
+        }
+        .download-json-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            button {
+                font-size: 1em;
+                padding: 12px 15px;
+            }
+            #transcription-output {
+                font-size: 1.1em;
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Hindi ASR Transcription App</h1>
+        
+        <div class="form-group">
+            <label for="audioFile">Upload WAV Audio (Mono, 16kHz, 1-10 seconds duration):</label>
+            <input type="file" id="audioFile" accept="audio/wav">
+        </div>
+        
+        <button id="transcribeButton">Transcribe Audio</button>
+
+        <div id="status-message" class="status-message" style="display: none;"></div>
+
+        <div id="result-container">
+            <h3>Transcription:</h3>
+            <p id="transcription-output"></p>
+            <h3>Full JSON Response:</h3>
+            <pre id="json-output"></pre>
+        </div>
+
+        <button id="downloadJsonButton" class="download-json-button">Download JSON</button>
+        </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const audioFileInput = document.getElementById('audioFile');
+            const transcribeButton = document.getElementById('transcribeButton');
+            const statusMessage = document.getElementById('status-message');
+            const resultContainer = document.getElementById('result-container');
+            const transcriptionOutput = document.getElementById('transcription-output');
+            const jsonOutput = document.getElementById('json-output');
+            const downloadJsonButton = document.getElementById('downloadJsonButton');
+
+            let lastJsonResponse = null;
+
+            resultContainer.style.display = 'none';
+            statusMessage.style.display = 'none';
+            downloadJsonButton.style.display = 'none';
+
+            transcribeButton.addEventListener('click', async () => {
+                statusMessage.style.display = 'block';
+                statusMessage.className = 'loading-message';
+                statusMessage.textContent = 'Transcribing audio... Please wait.';
+                resultContainer.style.display = 'none';
+                transcriptionOutput.textContent = '';
+                jsonOutput.textContent = '';
+                downloadJsonButton.style.display = 'none';
+                lastJsonResponse = null;
+
+                const file = audioFileInput.files[0];
+
+                if (!file) {
+                    statusMessage.className = 'error-message';
+                    statusMessage.textContent = 'Error: Please select an audio file.';
+                    return;
+                }
+
+                if (file.type !== 'audio/wav') {
+                    statusMessage.className = 'error-message';
+                    statusMessage.textContent = 'Error: Only WAV files are supported.';
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('audio_file', file);
+
+                try {
+                    const response = await fetch('/transcribe', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const data = await response.json();
+
+                    resultContainer.style.display = 'block';
+                    jsonOutput.textContent = JSON.stringify(data, null, 2);
+
+                    if (response.ok) {
+                        statusMessage.className = 'status-message';
+                        statusMessage.textContent = 'Transcription successful!';
+                        transcriptionOutput.textContent = data.transcription || 'No transcription found.';
+                        transcriptionOutput.style.color = '#28a745';
+                        lastJsonResponse = data;
+                        downloadJsonButton.style.display = 'block';
+                    } else {
+                        statusMessage.className = 'error-message';
+                        statusMessage.textContent = `Error: ${data.detail || 'Unknown error'}`;
+                        transcriptionOutput.textContent = `Error: ${data.detail || 'Could not transcribe audio.'}`;
+                        transcriptionOutput.style.color = '#dc3545';
+                        downloadJsonButton.style.display = 'none';
+                    }
+
+                } catch (error) {
+                    console.error('Fetch Error:', error);
+                    statusMessage.className = 'error-message';
+                    statusMessage.textContent = 'An unexpected network or server error occurred. Check console for details.';
+                    transcriptionOutput.textContent = 'Failed to connect to the server or unexpected error.';
+                    transcriptionOutput.style.color = '#dc3545';
+                    downloadJsonButton.style.display = 'none';
+                }
+            });
+
+            downloadJsonButton.addEventListener('click', () => {
+                if (lastJsonResponse) {
+                    const jsonString = JSON.stringify(lastJsonResponse, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'transcription_result.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('No JSON data available to download. Please transcribe an audio file first.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

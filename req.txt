@@ -1,0 +1,11 @@
+pip install onnxruntime soundfile numpy torch torchvision torchaudio nemo_toolkit[asr] resampy  
+pip uninstall huggingface-hub
+pip install huggingface-hub==0.20.0  
+python.exe .\onnx_ctc.py 
+
+fastapi
+uvicorn[standard]   
+
+pip install python-multipart
+
+from pydub import AudioSegment

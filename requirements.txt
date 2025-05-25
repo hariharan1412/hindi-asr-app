@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+huggingface-hub==0.20.0
+onnxruntime
+soundfile
+nemo_toolkit[asr]
+resampy
+pydub
+python-multipart
